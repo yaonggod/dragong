@@ -9,11 +9,14 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool isLogined = false;
+  NaverLoginResult? naverLoginResult;
+
+  // loggedIn, cancelledByUser, error
+  NaverLoginStatus naverLoginStatus = NaverLoginStatus.cancelledByUser;
 
   Future<bool> naverLogin() async {
     try {
-      final NaverLoginResult result = await FlutterNaverLogin.logIn();
+      naverLoginResult = await FlutterNaverLogin.logIn();
 
       NaverAccessToken token = await FlutterNaverLogin.currentAccessToken;
       // Naver 인증 서버에 접근하는 AT를 백엔드에 보내기
@@ -21,7 +24,20 @@ class _LoginScreenState extends State<LoginScreen> {
       // 만약 백엔드에서 AT로 인증하는 과정을 간소화하고 싶으면 이메일만 보내서 토큰 발급하기
       // print(result.account.email);
       setState(() {
-        isLogined = true;
+        naverLoginStatus = naverLoginResult!.status;
+      });
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  Future<bool> naverLogout() async {
+    try {
+      naverLoginResult = await FlutterNaverLogin.logOut();
+
+      setState(() {
+        naverLoginStatus = naverLoginResult!.status;
       });
       return true;
     } catch (err) {
@@ -35,8 +51,14 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(title: const Text('네이버 로그인')),
       body: Column(
         children: [
-          isLogined ? const Text('로그인됨') : const Text('로그인안됨'),
-          ElevatedButton(onPressed: naverLogin, child: const Text('네이버 로그인'))
+          Text(naverLoginStatus.toString()),
+          naverLoginStatus == NaverLoginStatus.loggedIn
+              ? ElevatedButton(
+                  onPressed: naverLogout,
+                  child: const Text("네이버 로그아웃"),
+                )
+              : ElevatedButton(
+                  onPressed: naverLogin, child: const Text('네이버 로그인'))
         ],
       ),
     );
